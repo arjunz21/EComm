@@ -1,0 +1,17 @@
+pandas
+numpy
+matplotlib
+seaborn
+plotly
+streamlit
+requests
+sqlalchemy
+pytest
+mysql-connector-python
+fastapi[standard]
+pydantic
+uvicorn
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+#-e .
