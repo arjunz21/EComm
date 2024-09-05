@@ -1,8 +1,8 @@
 # EMART
-Simple overview of use/purpose.
+EMART AI-ML Project
 
 ## Description
-A EMart Sales Machine Learning project with FASTApi, Docker, Plotly and Streamlit
+A EMart Sales Machine Learning project End to End with FASTApi, Docker, Plotly and Streamlit
 
 ## Getting Started
 ### Dependencies
@@ -16,11 +16,14 @@ A EMart Sales Machine Learning project with FASTApi, Docker, Plotly and Streamli
 ### Executing program
 * How to run the program
 ```
-code blocks for commands
+python -m venv venv
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+python -m venv venv
 ```
 
 ## Help
 Any advise for common problems or issues.
+* Need to run emartapi & emartapp seperately
 ```
 command to run if program contains helper info
 ```
