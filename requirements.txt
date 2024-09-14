@@ -18,6 +18,8 @@ ydata_profiling
 requests
 sqlalchemy
 pytest
+mysql
+pymysql
 mysql-connector-python
 fastapi[standard]
 pydantic
