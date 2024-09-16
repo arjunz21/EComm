@@ -1,5 +1,5 @@
-from models import base
-from models import Boolean, Column, Integer, String, TIMESTAMP
+from emartapi.models import base
+from emartapi.models import Boolean, Column, Integer, String, TIMESTAMP
 
 class User(base):
     __tablename__ = "users"

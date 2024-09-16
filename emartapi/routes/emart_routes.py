@@ -1,5 +1,4 @@
 from fastapi import APIRouter, status
-from src.emartapi.components import emartapi
 
 emart_router = APIRouter(
     prefix='/api/emart',

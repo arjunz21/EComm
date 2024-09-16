@@ -1,2 +1,2 @@
-from .logger import logging
-from .exception import CustomException
+from utils.logger import logging
+from utils.exception import CustomException

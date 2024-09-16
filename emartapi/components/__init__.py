@@ -1,2 +1,1 @@
-from src.utils import logging
-test = "abc123"
+from emartapi.components.data_ingestion import DataIngestion

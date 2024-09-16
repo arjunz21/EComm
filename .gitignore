@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+.idea
 *.py[cod]
 *$py.class
 
@@ -139,6 +140,8 @@ venv.bak/
 
 # mkdocs documentation
 /site
+logs/
+artifacts/
 
 # mypy
 .mypy_cache/
