@@ -18,6 +18,8 @@ app.add_middleware(CORSMiddleware,
     allow_credentials=True, allow_methods=['*'], allow_headers=['*'])
 
 from emartapi.components import DataIngestion
+from emartapi.components.data_transformation import DataTransformation
+from emartapi.components.model_trainer import ModelTrainer
 from emartapi.routes import emart_router
 
 # app routes
@@ -26,5 +28,10 @@ app.include_router(emart_router)
 
 @app.get("/test/", status_code=status.HTTP_200_OK)
 async def test():
-    o = DataIngestion()
-    return {"test": o.start()}
+    di = DataIngestion()
+    tr, te, val = di.start()
+    dt = DataTransformation(tr, te, val, "Profit")
+    Xtr, ytr, Xval, yval, Xte, yte, preprocesspath = dt.start()
+    m = ModelTrainer(Xtr, ytr, Xval, yval, preprocesspath)
+    print("Training: ", m.getBestModel())
+    return {"test": "test"}
