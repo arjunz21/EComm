@@ -98,14 +98,14 @@ class ModelTrainer:
                         'n_estimators': [8,16,32,64,128,256]
                     }
                 },
-                "CatBoosting Regressor":{
-                    'cls': CatBoostRegressor(),
-                      'params': {
-                        'depth': [6,8,10],
-                        'learning_rate': [0.01, 0.05, 0.1],
-                        'iterations': [30, 50, 100]
-                      }
-                },
+                # "CatBoosting Regressor":{
+                #     'cls': CatBoostRegressor(),
+                #       'params': {
+                #         'depth': [6,8,10],
+                #         'learning_rate': [0.01, 0.05, 0.1],
+                #         'iterations': [30, 50, 100]
+                #       }
+                # },
                 "AdaBoost Regressor":{
                     'cls': AdaBoostRegressor(),
                     'params': {
@@ -147,7 +147,7 @@ class ModelTrainer:
              logging.error("No Best model Found above R2 score of 0.7")
         
         logging.info('Best model found on both training and testing dataset')
-        return best_model
+        return best_model, self.modelTrainerConfig.trainedModelPath
         
     def scores(self, ypreds, ytest):
         mse = mean_squared_error(ytest, ypreds)
@@ -157,19 +157,23 @@ class ModelTrainer:
         adj_r2 = 1-(1 - r2) * (len(self.XTrain)-1 / (len(self.XTrain) - self.XTrain.shape[1] - 1))
         return round(mse, 3), round(mae, 3), round(mape, 3), round(r2, 3), round(adj_r2, 3)
 
-    def train(self, model, Xtr, ytr):
+    def train(self, model, Xtr, ytr, Xval, yval):
         model.fit(Xtr, ytr)
         Helpers.save_object(filePath=self.modelTrainerConfig.customModelPath, obj=model)
-        return self.modelTrainerConfig.customModelPath
-
-    def predict(self, model, Xtr, ytr, Xval, yval):
         ypreds = model.predict(Xtr)
         ytest_preds = model.predict(Xval)
         tr_mse, tr_mae, tr_mape, tr_r2, tr_adjr2 = self.scores(ypreds, ytr)
         te_mse, te_mae, te_mape, te_r2, te_adjr2 = self.scores(ytest_preds, yval)
         return { 'tr_mse': tr_mse, 'tr_mae': tr_mae, 'tr_mape': tr_mape, 'tr_r2': tr_r2, 'tr_adjr2': tr_adjr2,
                  'tr_mse': te_mse, 'tr_mae': te_mae, 'tr_mape': te_mape, 'tr_r2': te_r2, 'tr_adjr2': te_adjr2,
-                 'ypreds': ypreds, 'ytest_preds': ytest_preds}
+                 'ypreds': ypreds, 'ytest_preds': ytest_preds, 'modelPath': self.modelTrainerConfig.customModelPath}
+        return 
+
+    def predict(self, modelPath, Xte, yte):
+        model = Helpers.load_object(modelPath)
+        preds = model.predict(Xte)
+        return {'scores':self.scores(preds, yte), 'preds':preds}
+        
 
     def __str__(self):
         pass

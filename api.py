@@ -33,5 +33,7 @@ async def test():
     dt = DataTransformation(tr, te, val, "Profit")
     Xtr, ytr, Xval, yval, Xte, yte, preprocesspath = dt.start()
     m = ModelTrainer(Xtr, ytr, Xval, yval, preprocesspath)
-    print("Training: ", m.getBestModel())
+    bestmodel, mpath = m.getBestModel()
+    print("BestModel: ", bestmodel)
+    print("Predict: ", m.predict(mpath, Xte, yte))
     return {"test": "test"}

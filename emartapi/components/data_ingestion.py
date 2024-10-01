@@ -29,12 +29,12 @@ class DataIngestion:
             df.to_csv(self.ingestionConfig.rawDataPath, index=False, header=True)
 
             logging.info("Applying train test split")
-            train_df, test_df = train_test_split(df, test_size=0.3, random_state=42)
+            train_df, test_df = train_test_split(df, test_size=0.2, random_state=42)
             train_df.to_csv(self.ingestionConfig.trDataPath, index=False, header=True)
             test_df.to_csv(self.ingestionConfig.teDataPath, index=False, header=True)
 
             logging.info("Applying train test split to get train & validation data")
-            train_df, val_df = train_test_split(train_df, test_size=0.5, random_state=42)
+            train_df, val_df = train_test_split(train_df, test_size=0.3, random_state=42)
             train_df.to_csv(self.ingestionConfig.trDataPath, index=False, header=True)
             val_df.to_csv(self.ingestionConfig.valDataPath, index=False, header=True)
 
