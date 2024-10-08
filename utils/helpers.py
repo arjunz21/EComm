@@ -21,7 +21,7 @@ class Helpers:
     def load_object(filePath):
         try:
             logging.info("Loading the object")
-            with open(filePath, "wb") as fileObj:
+            with open(filePath, "rb") as fileObj:
                 obj = pickle.load(fileObj)
             return obj
         

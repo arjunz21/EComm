@@ -3,7 +3,7 @@ from fastapi import Depends
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Boolean, Column, Integer, String, TIMESTAMP
+from sqlalchemy import Boolean, Column, Integer, String, TIMESTAMP, DateTime
 
 URL_DB = "mysql+pymysql://root@localhost:3306/emart"
 engine = create_engine(URL_DB, connect_args={}, echo=False)

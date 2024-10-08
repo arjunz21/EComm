@@ -11,6 +11,7 @@ lightgbm
 statsmodels
 fbprophet
 category_encoders
+catboost
 nbformat
 streamlit
 streamlit_pandas_profiling
@@ -27,4 +28,5 @@ uvicorn
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
+jupyter_contrib_nbextensions
 #-e .

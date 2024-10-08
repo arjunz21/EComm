@@ -24,6 +24,7 @@ class DataIngestion:
         logging.info("Data Ingestion started.")
         try:
             df = pd.read_csv(os.path.join(self.ingestionConfig.curPath, 'Notebooks', 'data', 'EMart.csv'))
+            df.drop(columns=['Profit', 'Unnamed: 0', 'OrderDate'], inplace=True)
             logging.info("Reading the dataset as dataframe")
             os.makedirs(os.path.dirname(self.ingestionConfig.rawDataPath), exist_ok=True)
             df.to_csv(self.ingestionConfig.rawDataPath, index=False, header=True)
@@ -40,7 +41,7 @@ class DataIngestion:
 
             logging.info("Data Ingestion completed")
             
-            return self.ingestionConfig.trDataPath, self.ingestionConfig.teDataPath, self.ingestionConfig.valDataPath
+            return self.ingestionConfig.trDataPath, self.ingestionConfig.valDataPath, self.ingestionConfig.teDataPath
             
         except Exception as e:
             logging.error("Error in DataIngestion:" + str(e))

@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass
@@ -20,19 +21,19 @@ from utils.helpers import Helpers
 
 
 @dataclass
-class ModelTrainerConfig:
+class PriceModelConfig:
     trainedModelPath: str = os.path.join('artifacts', 'model.pkl')
     customModelPath: str = os.path.join('artifacts', 'custom.pkl')
 
 
-class ModelTrainer:
-    def __init__(self, XTrain, yTrain, XVal, yVal, preprocessorpath):
-        self.modelTrainerConfig = ModelTrainerConfig()
-        self.XTrain = XTrain
-        self.yTrain = yTrain
-        self.XVal = XVal
-        self.yVal = yVal
-    
+class PriceModel:
+    def __init__(self, XTrainPath, yTrainPath, XValPath, yValPath, preprocessorpath):
+        self.modelTrainerConfig = PriceModelConfig()
+        self.XTrain = Helpers.load_object(XTrainPath)
+        self.yTrain = Helpers.load_object(yTrainPath)
+        self.XVal = Helpers.load_object(XValPath)
+        self.yVal = Helpers.load_object(yValPath)
+        self.pre = Helpers.load_object(preprocessorpath)    
     
     def getBestFeatures(self, Xtr, ytr):
         # K-Best for numerical features
@@ -48,7 +49,6 @@ class ModelTrainer:
         rfecv = RFECV(estimator=f_regression, step=1, cv=3)
         rfecv.fit(Xtr, ytr)
         print(rfecv.grid_scores)
-    
 
     def getBestModel(self):
         self.models={
@@ -98,18 +98,18 @@ class ModelTrainer:
                         'n_estimators': [8,16,32,64,128,256]
                     }
                 },
-                # "CatBoosting Regressor":{
-                #     'cls': CatBoostRegressor(),
-                #       'params': {
-                #         'depth': [6,8,10],
-                #         'learning_rate': [0.01, 0.05, 0.1],
-                #         'iterations': [30, 50, 100]
-                #       }
-                # },
+                "CatBoosting Regressor":{
+                    'cls': CatBoostRegressor(),
+                      'params': {
+                        'depth': [6,8,10],
+                        'learning_rate': [0.01, 0.05, 0.1],
+                        'iterations': [30, 50, 100]
+                      }
+                },
                 "AdaBoost Regressor":{
                     'cls': AdaBoostRegressor(),
                     'params': {
-                        'learning_rate':[.1,.01,0.5,.001],
+                        'learning_rate':[.1,.01, 0.5, .0001],
                         # 'loss':['linear','square','exponential'],
                         'n_estimators': [8,16,32,64,128,256]
                     }
@@ -135,45 +135,53 @@ class ModelTrainer:
             ytest_preds = cls.predict(self.XVal)
             self.models[name]['best_params'] = gs.best_params_
             self.models[name]['tr_mse'], self.models[name]['tr_mae'], self.models[name]['tr_mape'], self.models[name]['tr_r2'], self.models[name]['tr_adjr2'] = self.scores(ypreds, self.yTrain)
-            self.models[name]['te_mse'], self.models[name]['te_mae'], self.models[name]['te_mape'], self.models[name]['te_r2'], self.models[name]['te_adjr2'] = self.scores(ytest_preds, self.yVal)
+            self.models[name]['tval_mse'], self.models[name]['tval_mae'], self.models[name]['tval_mape'], self.models[name]['tval_r2'], self.models[name]['tval_adjr2'] = self.scores(ytest_preds, self.yVal)
                     
         ## To get best model score from dict
-        best_model = pd.DataFrame(self.models).T.sort_values(by=['tr_r2', 'te_r2', 'tr_mae', 'te_mae'], ascending=[False, False, False, False]).iloc[0]
+        best_model = pd.DataFrame(self.models).T.sort_values(by=['tr_r2', 'tval_r2', 'tr_mae', 'tval_mae'], ascending=[False, False, False, False]).iloc[0]
         Helpers.save_object(filePath=self.modelTrainerConfig.trainedModelPath, obj=best_model['cls'])
-        print("BestModel: ", best_model.drop(columns=['cls']))
-        logging.info("BestModel: ", best_model.drop(columns=['cls']))
+        best_model['cls'] = ""
+        print("BestModel: ", best_model)
 
-        if best_model['tr_r2'] < 0.7 and best_model['te_r2'] < 0.7:
+        if best_model['tr_r2'] < 0.7 and best_model['tval_r2'] < 0.7:
              logging.error("No Best model Found above R2 score of 0.7")
+        # logging.info("BestModel: ", best_model.to_dict())
         
         logging.info('Best model found on both training and testing dataset')
-        return best_model, self.modelTrainerConfig.trainedModelPath
+        return best_model.to_dict(), self.modelTrainerConfig.trainedModelPath
+
+    def train(self, modelPath):
+        # Loading model & Data
+        model = Helpers.load_object(modelPath)
         
+        # Training Model
+        model.fit(self.XTrain, self.yTrain)
+        Helpers.save_object(filePath=self.modelTrainerConfig.customModelPath, obj=model)
+        ypreds = model.predict(self.XTrain)
+        yval_preds = model.predict(self.XVal)
+
+        # Checking for Training & Test scores
+        tr_mse, tr_mae, tr_mape, tr_r2, tr_adjr2 = self.scores(ypreds, self.yVal)
+        tval_mse, tval_mae, tval_mape, tval_r2, tval_adjr2 = self.scores(yval_preds, self.yVal)
+        return { 'scores': {'tr_mse': tr_mse, 'tr_mae': tr_mae, 'tr_mape': tr_mape, 'tr_r2': tr_r2, 'tr_adjr2': tr_adjr2,
+                 'tval_mse': tval_mse, 'tval_mae': tval_mae, 'tval_mape': tval_mape, 'tval_r2': tval_r2, 'tval_adjr2': tval_adjr2},
+                 'ypreds': ypreds, 'ytest_preds': yval_preds, 'modelPath': self.modelTrainerConfig.customModelPath }
+         
+    @staticmethod
+    def predict(preProcessPath, modelPath, Xte, yte=0):
+        model = Helpers.load_object(modelPath)
+        preprocessor = Helpers.load_object(preProcessPath)
+        Xte = preprocessor.transform(pd.DataFrame([Xte]))
+        preds = model.predict(Xte)
+        return {'scores':'self.scores(preds, yte)', 'preds':str(preds)}
+    
     def scores(self, ypreds, ytest):
         mse = mean_squared_error(ytest, ypreds)
         mae = median_absolute_error(ytest, ypreds)
         mape=np.mean(np.abs((ytest - ypreds)/ytest))*100
         r2 = r2_score(ytest, ypreds)
-        adj_r2 = 1-(1 - r2) * (len(self.XTrain)-1 / (len(self.XTrain) - self.XTrain.shape[1] - 1))
+        adj_r2 = 1 - ((1 - r2) * (self.XTrain.shape[0]-1) / (self.XTrain.shape[0] - self.XTrain.shape[1] - 1))
         return round(mse, 3), round(mae, 3), round(mape, 3), round(r2, 3), round(adj_r2, 3)
-
-    def train(self, model, Xtr, ytr, Xval, yval):
-        model.fit(Xtr, ytr)
-        Helpers.save_object(filePath=self.modelTrainerConfig.customModelPath, obj=model)
-        ypreds = model.predict(Xtr)
-        ytest_preds = model.predict(Xval)
-        tr_mse, tr_mae, tr_mape, tr_r2, tr_adjr2 = self.scores(ypreds, ytr)
-        te_mse, te_mae, te_mape, te_r2, te_adjr2 = self.scores(ytest_preds, yval)
-        return { 'tr_mse': tr_mse, 'tr_mae': tr_mae, 'tr_mape': tr_mape, 'tr_r2': tr_r2, 'tr_adjr2': tr_adjr2,
-                 'tr_mse': te_mse, 'tr_mae': te_mae, 'tr_mape': te_mape, 'tr_r2': te_r2, 'tr_adjr2': te_adjr2,
-                 'ypreds': ypreds, 'ytest_preds': ytest_preds, 'modelPath': self.modelTrainerConfig.customModelPath}
-        return 
-
-    def predict(self, modelPath, Xte, yte):
-        model = Helpers.load_object(modelPath)
-        preds = model.predict(Xte)
-        return {'scores':self.scores(preds, yte), 'preds':preds}
         
-
     def __str__(self):
         pass
