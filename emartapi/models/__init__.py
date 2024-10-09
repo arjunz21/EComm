@@ -5,7 +5,8 @@ from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Boolean, Column, Integer, String, TIMESTAMP, DateTime
 
-URL_DB = "mysql+pymysql://root@localhost:3306/emart"
+# URL_DB = "mysql+pymysql://root@localhost:3306/emart"
+URL_DB = "sqlite:///emart.db"
 engine = create_engine(URL_DB, connect_args={}, echo=False)
 sessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 base = declarative_base()

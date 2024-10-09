@@ -9,13 +9,13 @@ imblearn
 xgboost
 lightgbm
 statsmodels
-fbprophet
+#fbprophet
 category_encoders
 catboost
 nbformat
+#ydata_profiling
 streamlit
 streamlit_pandas_profiling
-ydata_profiling
 requests
 sqlalchemy
 pytest
@@ -28,5 +28,5 @@ uvicorn
 python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
-jupyter_contrib_nbextensions
+#jupyter_contrib_nbextensions
 #-e .
