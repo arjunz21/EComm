@@ -37,4 +37,4 @@ async def test():
     print("BestModel: ", bestmodel)
     print("Predict: ", PriceModel.predict(preprocesspath, mpath, Xte, yte))
     # print(dt.start())
-    return {"test": "test"}
+    return {"test": "hello"}

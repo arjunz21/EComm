@@ -1,8 +1,7 @@
 from typing import Annotated
 from fastapi import Depends
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from sqlalchemy import Boolean, Column, Integer, String, TIMESTAMP, DateTime
 
 # URL_DB = "mysql+pymysql://root@localhost:3306/emart"

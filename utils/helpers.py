@@ -1,7 +1,10 @@
 import os
 import pickle
-
+import configparser
 from utils import logging
+
+config = configparser.RawConfigParser()
+config.read(os.path.join('resources', 'config.ini'))
 
 class Helpers:
     
@@ -27,3 +30,7 @@ class Helpers:
         
         except Exception as e:
             logging.info("Error occured in loading object: ", e)
+    
+    @staticmethod
+    def read_config(section, key):
+        return config.get(section, key, fallback=None)

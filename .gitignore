@@ -9,6 +9,8 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+allurelogs/
+catboost_info/
 .Python
 build/
 develop-eggs/

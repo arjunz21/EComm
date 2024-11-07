@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from sklearn.feature_selection import SelectKBest, chi2, mutual_info_classif, f_regression, RFE, RFECV
 from sklearn.model_selection import GridSearchCV, KFold, StratifiedKFold
-# from catboost import CatBoostRegressor
+from catboost import CatBoostRegressor
 from sklearn.ensemble import (AdaBoostRegressor, GradientBoostingRegressor, RandomForestRegressor)
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
