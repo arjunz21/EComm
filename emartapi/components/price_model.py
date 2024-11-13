@@ -24,6 +24,7 @@ from utils.helpers import Helpers
 class PriceModelConfig:
     trainedModelPath: str = os.path.join('artifacts', 'model.pkl')
     customModelPath: str = os.path.join('artifacts', 'custom.pkl')
+    scoresPath: str = os.path.join('artifacts', 'scores.pkl')
 
 
 class PriceModel:
@@ -33,7 +34,8 @@ class PriceModel:
         self.yTrain = Helpers.load_object(yTrainPath)
         self.XVal = Helpers.load_object(XValPath)
         self.yVal = Helpers.load_object(yValPath)
-        self.pre = Helpers.load_object(preprocessorpath)    
+        self.pre = Helpers.load_object(preprocessorpath)
+        self.thresh = 0.7
     
     def getBestFeatures(self, Xtr, ytr):
         # K-Best for numerical features
@@ -110,7 +112,7 @@ class PriceModel:
                     'cls': AdaBoostRegressor(),
                     'params': {
                         'learning_rate':[.1,.01, 0.5, .0001],
-                        # 'loss':['linear','square','exponential'],
+                        #'loss':['linear','square','exponential'],
                         'n_estimators': [8,16,32,64,128,256]
                     }
                 }
@@ -136,15 +138,16 @@ class PriceModel:
             self.models[name]['best_params'] = gs.best_params_
             self.models[name]['tr_mse'], self.models[name]['tr_mae'], self.models[name]['tr_mape'], self.models[name]['tr_r2'], self.models[name]['tr_adjr2'] = self.scores(ypreds, self.yTrain)
             self.models[name]['tval_mse'], self.models[name]['tval_mae'], self.models[name]['tval_mape'], self.models[name]['tval_r2'], self.models[name]['tval_adjr2'] = self.scores(ytest_preds, self.yVal)
-                    
+
+        Helpers.save_object(filePath=self.modelTrainerConfig.scoresPath, obj=self.models)            
         ## To get best model score from dict
         best_model = pd.DataFrame(self.models).T.sort_values(by=['tr_r2', 'tval_r2', 'tr_mae', 'tval_mae'], ascending=[False, False, False, False]).iloc[0]
         Helpers.save_object(filePath=self.modelTrainerConfig.trainedModelPath, obj=best_model['cls'])
         best_model['cls'] = ""
         print("BestModel: ", best_model)
 
-        if best_model['tr_r2'] < 0.7 and best_model['tval_r2'] < 0.7:
-             logging.error("No Best model Found above R2 score of 0.7")
+        if best_model['tr_r2'] < self.thresh and best_model['tval_r2'] < self.thresh:
+             logging.error(f"No Best model Found above R2 score of {self.thresh}")
         # logging.info("BestModel: ", best_model.to_dict())
         
         logging.info('Best model found on both training and testing dataset')
@@ -171,7 +174,8 @@ class PriceModel:
     def predict(preProcessPath, modelPath, Xte, yte=0):
         model = Helpers.load_object(modelPath)
         preprocessor = Helpers.load_object(preProcessPath)
-        Xte = preprocessor.transform(pd.DataFrame([Xte]))
+        Xte = preprocessor.transform(Xte)
+        print("Shape:", Xte.shape)
         preds = model.predict(Xte)
         return {'scores':'self.scores(preds, yte)', 'preds':str(preds)}
     
@@ -182,6 +186,10 @@ class PriceModel:
         r2 = r2_score(ytest, ypreds)
         adj_r2 = 1 - ((1 - r2) * (self.XTrain.shape[0]-1) / (self.XTrain.shape[0] - self.XTrain.shape[1] - 1))
         return round(mse, 3), round(mae, 3), round(mape, 3), round(r2, 3), round(adj_r2, 3)
+    
+    @staticmethod
+    def getAllScores(self):
+        return Helpers.load_object(self.modelTrainerConfig.scoresPath)
         
     def __str__(self):
         pass

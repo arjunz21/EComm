@@ -28,25 +28,20 @@ class DataTransformationConfig:
     ytrPath: str = os.path.join('artifacts', 'ytr.pkl')
     XvalPath: str = os.path.join('artifacts', 'Xval.pkl')
     yvalPath: str = os.path.join('artifacts', 'yval.pkl')
-    XtePath: str = os.path.join('artifacts', 'Xte.pkl')
-    ytePath: str = os.path.join('artifacts', 'yte.pkl')
 
 
 class DataTransformation:
-    def __init__(self, trPath, tePath, valPath, ordCol, targetCol):
+    def __init__(self, trPath, valPath, ordCol, targetCol):
         self.dataTransformConfig = DataTransformationConfig()
         self.targetCol = targetCol
         try:
             logging.info("Reading Train & Test data completed")
             self.tr_df = pd.read_csv(trPath)
-            self.te_df = pd.read_csv(tePath)
             self.val_df = pd.read_csv(valPath)
 
             logging.info("Dropping null values & duplicates in Dataframe")
             self.tr_df.dropna(how="all", inplace=True)
             self.tr_df.drop_duplicates(inplace=True)
-            self.te_df.dropna(how="all", inplace=True)
-            self.te_df.drop_duplicates(inplace=True)
             self.val_df.dropna(how="all", inplace=True)
             self.val_df.drop_duplicates(inplace=True)
 
@@ -127,6 +122,10 @@ class DataTransformation:
     def start(self):
         try:
             preprocessingobj = self.getDataTransformerObj()
+            print("Train Shape:", str(self.tr_df.shape))
+            print("Validation Shape:", str(self.val_df.shape))
+            print("Shape:", self.tr_df.shape)
+            print("Shape:", self.val_df.shape)
             X_tr = self.tr_df.drop(columns=[self.targetCol], axis=1)
             y_tr = self.tr_df[self.targetCol]
             X_tr = preprocessingobj.fit_transform(X_tr, y_tr)
@@ -134,25 +133,19 @@ class DataTransformation:
             Helpers.save_object(obj=X_tr, filePath=self.dataTransformConfig.XtrPath)
             Helpers.save_object(obj=y_tr, filePath=self.dataTransformConfig.ytrPath)
 
-            X_te = self.te_df.drop(columns=self.targetCol)
-            y_te = self.te_df[self.targetCol]
-            X_te = preprocessingobj.transform(X_te)
-            #y_te = preprocessingobj.transform(y_te)
-            Helpers.save_object(obj=X_te, filePath=self.dataTransformConfig.XvalPath)
-            Helpers.save_object(obj=y_te, filePath=self.dataTransformConfig.yvalPath)
-
             X_val = self.val_df.drop(columns=self.targetCol)
             print("Xval ", X_val.columns)
             y_val = self.val_df[self.targetCol]
             X_val = preprocessingobj.transform(X_val)
             #y_val = preprocessingobj.transform(y_val)
-            Helpers.save_object(obj=X_val, filePath=self.dataTransformConfig.XtePath)
-            Helpers.save_object(obj=y_val, filePath=self.dataTransformConfig.ytePath)
+            Helpers.save_object(obj=X_val, filePath=self.dataTransformConfig.XvalPath)
+            Helpers.save_object(obj=y_val, filePath=self.dataTransformConfig.yvalPath)
             logging.info("Numerical & Categorical columns standard scaling completed")
 
             Helpers.save_object(obj=preprocessingobj, filePath=self.dataTransformConfig.preProcessorPath)
             logging.info("Preprocessing object saved as pickle file")
-            return self.dataTransformConfig.XtrPath, self.dataTransformConfig.ytrPath, self.dataTransformConfig.XvalPath, self.dataTransformConfig.yvalPath, self.dataTransformConfig.XtePath, self.dataTransformConfig.ytePath, self.dataTransformConfig.preProcessorPath
+            dinfo = {"Xtr": str(X_tr.shape), "Xval": str(X_val.shape)}
+            return self.dataTransformConfig.XtrPath, self.dataTransformConfig.ytrPath, self.dataTransformConfig.XvalPath, self.dataTransformConfig.yvalPath, self.dataTransformConfig.preProcessorPath, dinfo
         
         except Exception as e:
             logging.error("Error in DataTransformation:" + str(e))

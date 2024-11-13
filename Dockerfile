@@ -1,5 +1,5 @@
 # Use an official Python runtime as a parent image
-FROM python:3.11.9-bookworm
+FROM python:3.12-slim-bookworm
 
 # Set environment variables
 # ENV PYTHONDONTWRITEBYTECODE 1
@@ -8,17 +8,17 @@ FROM python:3.11.9-bookworm
 WORKDIR /emart
 
 # Install system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends git curl unzip \
-    && rm -rf /var/lib/apt/lists/*
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends git curl unzip \
+#     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt requirements.txt
-COPY . .
+COPY . /emart
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt
 
-# Expose any necessary ports (e.g., FastAPI)
+# Expose any necessary ports (e.g., FastAPI: 8000)
 EXPOSE 8000
 
 # Command to run the application

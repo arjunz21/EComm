@@ -1,5 +1,6 @@
 from fastapi import APIRouter, status
 
+import pandas as pd
 from emartapi import models
 from emartapi.models.fastModels import TransformModel, PredictModel, MetricModel, ModelTrainerModel
 from emartapi.models import Session, Depends
@@ -37,10 +38,16 @@ async def train(data: ModelTrainerModel, modelPath: str="artifacts\\model.pkl", 
     m = PriceModel(data.Xtrpath, data.ytrpath, data.Xvalpath, data.yvalpath, data.prepath)
     return m.train(modelPath)
 
-@emart_router.post("/predict", status_code=status.HTTP_200_OK)
-async def predict(inp: PredictModel, preprocessPath: str="artifacts\\preprocessor.pkl", modelPath: str="artifacts\\model.pkl"):
-    return PriceModel.predict(preprocessPath, modelPath, dict(inp), ["0"])
-
 @emart_router.get("/scores", response_model=MetricModel, status_code=status.HTTP_200_OK)
 async def scores(db: Session = Depends(models.getDB)):
     return {"hello": "scores"}
+
+@emart_router.get("/getallscores", status_code=status.HTTP_200_OK)
+async def getallscores(db: Session = Depends(models.getDB)):
+    return PriceModel.getAllScores()
+
+@emart_router.post("/predict", status_code=status.HTTP_200_OK)
+async def predict(inp: PredictModel, preprocessPath: str="artifacts\\preprocessor.pkl",
+                  modelPath: str="artifacts\\model.pkl"):
+    xte = pd.DataFrame([dict(inp)])
+    return PriceModel.predict(preprocessPath, modelPath, xte, ["0"])
