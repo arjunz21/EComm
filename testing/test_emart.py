@@ -32,13 +32,14 @@ class Test_Emart:
         print("responsejson: ", response.json())
         assert response.status_code == 200
     
-    def getbestfeatures(self):
+    @pytest.mark.skip
+    def test_getbestfeatures(self):
         response = self.client.get("/api/emart/getBestFeatures")
         print("response: ", response.text)
         print("responsejson: ", response.json())
         assert response.status_code == 200
     
-    @pytest.mark.skip
+ 
     def test_getbestmodel(self):
         payload = {
             "Xtrpath": "artifacts\\Xtr.pkl",
