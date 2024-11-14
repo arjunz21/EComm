@@ -21,7 +21,7 @@ async def getData():
 
 @emart_router.post("/transformdata", status_code=status.HTTP_200_OK)
 async def transformdata(data: TransformModel):
-    dt = DataTransformation(trPath=data.trainpath, valPath=data.valpath, tePath=data.testpath, ordCol=data.ordcolumn, targetCol=data.targetcolumn)
+    dt = DataTransformation(trPath=data.trainpath, valPath=data.valpath, ordCol=data.ordcolumn, targetCol=data.targetcolumn)
     return dt.start()
 
 @emart_router.post("/getBestFeatures", status_code=status.HTTP_200_OK)

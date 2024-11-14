@@ -54,6 +54,14 @@ class PriceModel:
 
     def getBestModel(self):
         self.models={
+                "CatBoosting Regressor":{
+                    'cls': CatBoostRegressor(),
+                      'params': {
+                        'depth': [6,8,10],
+                        'learning_rate': [0.01, 0.05, 0.1],
+                        'iterations': [30, 50, 100]
+                      }
+                },
                 "Decision Tree": {
                     'cls': DecisionTreeRegressor(),
                     'params': {
@@ -99,14 +107,6 @@ class PriceModel:
                         'learning_rate':[.1,.01,.05,.001],
                         'n_estimators': [8,16,32,64,128,256]
                     }
-                },
-                "CatBoosting Regressor":{
-                    'cls': CatBoostRegressor(),
-                      'params': {
-                        'depth': [6,8,10],
-                        'learning_rate': [0.01, 0.05, 0.1],
-                        'iterations': [30, 50, 100]
-                      }
                 },
                 "AdaBoost Regressor":{
                     'cls': AdaBoostRegressor(),
@@ -164,11 +164,12 @@ class PriceModel:
         yval_preds = model.predict(self.XVal)
 
         # Checking for Training & Test scores
-        tr_mse, tr_mae, tr_mape, tr_r2, tr_adjr2 = self.scores(ypreds, self.yVal)
+        tr_mse, tr_mae, tr_mape, tr_r2, tr_adjr2 = self.scores(ypreds, self.yTrain)
         tval_mse, tval_mae, tval_mape, tval_r2, tval_adjr2 = self.scores(yval_preds, self.yVal)
         return { 'scores': {'tr_mse': tr_mse, 'tr_mae': tr_mae, 'tr_mape': tr_mape, 'tr_r2': tr_r2, 'tr_adjr2': tr_adjr2,
                  'tval_mse': tval_mse, 'tval_mae': tval_mae, 'tval_mape': tval_mape, 'tval_r2': tval_r2, 'tval_adjr2': tval_adjr2},
-                 'ypreds': ypreds, 'ytest_preds': yval_preds, 'modelPath': self.modelTrainerConfig.customModelPath }
+                 'ypreds': str(ypreds), 'ytest_preds': str(yval_preds), 'modelPath': self.modelTrainerConfig.customModelPath }
+
          
     @staticmethod
     def predict(preProcessPath, modelPath, Xte, yte=0):
@@ -180,6 +181,7 @@ class PriceModel:
         return {'scores':'self.scores(preds, yte)', 'preds':str(preds)}
     
     def scores(self, ypreds, ytest):
+        ypreds = pd.Series(ypreds)
         mse = mean_squared_error(ytest, ypreds)
         mae = median_absolute_error(ytest, ypreds)
         mape=np.mean(np.abs((ytest - ypreds)/ytest))*100
@@ -188,8 +190,8 @@ class PriceModel:
         return round(mse, 3), round(mae, 3), round(mape, 3), round(r2, 3), round(adj_r2, 3)
     
     @staticmethod
-    def getAllScores(self):
-        return Helpers.load_object(self.modelTrainerConfig.scoresPath)
+    def getAllScores():
+        return str(Helpers.load_object(PriceModelConfig().scoresPath))
         
     def __str__(self):
         pass
