@@ -5,8 +5,8 @@ on:
       - main
 
 jobs:
-  job1:
-    build:
+  build:
+    job1:
       runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v4
