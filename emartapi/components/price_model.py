@@ -1,6 +1,8 @@
 import os
 import sys
+import uuid
 import json
+import mlflow
 import numpy as np
 import pandas as pd
 from dataclasses import dataclass
@@ -36,6 +38,11 @@ class PriceModel:
         self.yVal = Helpers.load_object(yValPath)
         self.pre = Helpers.load_object(preprocessorpath)
         self.thresh = 0.7
+        mlflow.set_experiment("EMart PriceModel Mlflow")
+        # mlflow.set_tracking_uri("http://0.0.0.0:5000/")
+        # mlflow.set_tag("mlflow.runName", "Run {}".format(uuid.uuid4()))
+        mlflow.end_run()
+        
     
     def getBestFeatures(self, Xtr, ytr):
         # K-Best for numerical features
@@ -111,45 +118,67 @@ class PriceModel:
                 "AdaBoost Regressor":{
                     'cls': AdaBoostRegressor(),
                     'params': {
-                        'learning_rate':[.1,.01, 0.5, .0001],
+                        'learning_rate':[.1,.01,.05,.001],
                         #'loss':['linear','square','exponential'],
                         'n_estimators': [8,16,32,64,128,256]
                     }
                 }
             }
-
+        
+        logging.info('Logging Best Model, Params & Metrics into MlFlow')
         for name, model in self.models.items():
             print("Model: ", name)
             self.models[name]['name'] = name
             cls = model['cls']
             params = model['params']
 
-            # Finding the best params for the models with KFold & GridSearchCV
-            kf = KFold(3, shuffle=True, random_state=1)
-            gs = GridSearchCV(estimator=cls, param_grid=params, cv=kf)
-            gs.fit(self.XTrain, self.yTrain)
-            
-            # Fitting with XTrain & YTrain Data
-            cls.set_params(**gs.best_params_)
-            cls.fit(self.XTrain, self.yTrain)
+            with mlflow.start_run(run_name=name):
+                # Finding the best params for the models with KFold & GridSearchCV
+                kf = KFold(3, shuffle=True, random_state=1)
+                gs = GridSearchCV(estimator=cls, param_grid=params, cv=kf)
+                gs.fit(self.XTrain, self.yTrain)
+                
+                # Fitting with XTrain & YTrain Data
+                cls.set_params(**gs.best_params_)
+                cls.fit(self.XTrain, self.yTrain)
 
-            ypreds = cls.predict(self.XTrain)
-            ytest_preds = cls.predict(self.XVal)
-            self.models[name]['best_params'] = gs.best_params_
-            self.models[name]['tr_mse'], self.models[name]['tr_mae'], self.models[name]['tr_mape'], self.models[name]['tr_r2'], self.models[name]['tr_adjr2'] = self.scores(ypreds, self.yTrain)
-            self.models[name]['tval_mse'], self.models[name]['tval_mae'], self.models[name]['tval_mape'], self.models[name]['tval_r2'], self.models[name]['tval_adjr2'] = self.scores(ytest_preds, self.yVal)
+                ypreds = cls.predict(self.XTrain)
+                yVal_preds = cls.predict(self.XVal)
+                self.models[name]['best_params'] = gs.best_params_
+                self.models[name]['metrics'] = self.scores(ypreds, self.yTrain)
+                self.models[name]['valid'] = self.scores(yVal_preds, self.yVal)
 
-        Helpers.save_object(filePath=self.modelTrainerConfig.scoresPath, obj=self.models)            
-        ## To get best model score from dict
-        best_model = pd.DataFrame(self.models).T.sort_values(by=['tr_r2', 'tval_r2', 'tr_mae', 'tval_mae'], ascending=[False, False, False, False]).iloc[0]
-        Helpers.save_object(filePath=self.modelTrainerConfig.trainedModelPath, obj=best_model['cls'])
-        best_model['cls'] = ""
-        print("BestModel: ", best_model)
+                mlflow.sklearn.log_model(cls, name)
+                mlflow.set_tag("DataFile", "data_new.csv")
+                tr_data = mlflow.data.from_numpy(self.XTrain, targets=self.yTrain.to_numpy())
+                mlflow.log_input(tr_data, context='Training')
+                mlflow.log_params(gs.best_params_)             
+                for k, v in self.models[name]['valid'].items():
+                    self.models[name][f"valid_{k}"] = v
+                for k, v in self.models[name]['metrics'].items():
+                    self.models[name][f"train_{k}"] = v
+                for k, v in self.models[name]['valid'].items():
+                    self.models[name]['metrics'][f"valid_{k}"] = v
+                mlflow.log_metrics(self.models[name]['metrics'])
+                del self.models[name]['valid']
+                del self.models[name]['metrics']
 
-        if best_model['tr_r2'] < self.thresh and best_model['tval_r2'] < self.thresh:
-             logging.error(f"No Best model Found above R2 score of {self.thresh}")
-        # logging.info("BestModel: ", best_model.to_dict())
+        # print("models:", self.models)
+        Helpers.save_object(filePath=self.modelTrainerConfig.scoresPath, obj=self.models)
         
+        ## To get best model score from dict
+        best_model = pd.DataFrame(self.models).T.sort_values(by=['train_r2', 'valid_r2', 'train_mae', 'valid_mae'], ascending=[False, False, False, False]).iloc[0]
+        Helpers.save_object(filePath=self.modelTrainerConfig.trainedModelPath, obj=best_model['cls'])
+        print("BestModel: ", best_model)
+        # logging.info("BestModel: ", best_model.to_dict())
+
+        if best_model['train_r2'] < self.thresh and best_model['valid_r2'] < self.thresh:
+             logging.error(f"No Best model Found above R2 score of {self.thresh}")
+        else:
+            runId = ''
+            # regModel = mlflow.register_model(f"runs:/{runId}/model", f"{best_model['name']}")
+        
+        mlflow.end_run()
         logging.info('Best model found on both training and testing dataset')
         return best_model.to_dict(), self.modelTrainerConfig.trainedModelPath
 
@@ -169,7 +198,6 @@ class PriceModel:
         return { 'scores': {'tr_mse': tr_mse, 'tr_mae': tr_mae, 'tr_mape': tr_mape, 'tr_r2': tr_r2, 'tr_adjr2': tr_adjr2,
                  'tval_mse': tval_mse, 'tval_mae': tval_mae, 'tval_mape': tval_mape, 'tval_r2': tval_r2, 'tval_adjr2': tval_adjr2},
                  'ypreds': str(ypreds), 'ytest_preds': str(yval_preds), 'modelPath': self.modelTrainerConfig.customModelPath }
-
          
     @staticmethod
     def predict(preProcessPath, modelPath, Xte, yte=0):
@@ -187,7 +215,7 @@ class PriceModel:
         mape=np.mean(np.abs((ytest - ypreds)/ytest))*100
         r2 = r2_score(ytest, ypreds)
         adj_r2 = 1 - ((1 - r2) * (self.XTrain.shape[0]-1) / (self.XTrain.shape[0] - self.XTrain.shape[1] - 1))
-        return round(mse, 3), round(mae, 3), round(mape, 3), round(r2, 3), round(adj_r2, 3)
+        return {"mse": round(mse, 3), "mae" : round(mae, 3), "mape" : round(mape, 3), "r2" : round(r2, 3), "adjr2" : round(adj_r2, 3)}
     
     @staticmethod
     def getAllScores():
