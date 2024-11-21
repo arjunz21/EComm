@@ -29,7 +29,7 @@ command to run if program contains helper info
 ```
 
 ## Authors
-Arjun Gadvi [@Demail](arjun.gadvi@gmail.com)
+Arjun Gadvi [@ArjunGadvi](arjun.gadvi@gmail.com)
 
 ## Version History
 * 0.1
